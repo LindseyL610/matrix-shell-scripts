@@ -1,0 +1,408 @@
+#!/bin/bash
+
+# Function to print the dimensions of the matrix
+dims() {
+	rows=0
+	cols=0
+
+	# Loops through each row of the matrix
+	while read myLine
+	do
+        	rows=`expr $rows + 1`
+
+		# Gets the number of columns for the first row
+        	if [ "$rows" -eq 1 ]
+        	then
+                	for i in $myLine
+                	do
+                        	cols=`expr $cols + 1`
+                	done
+        	fi
+	done < $1
+	echo -e "$rows $cols"
+}
+
+# Function to transpose the matrix
+transpose() {
+	declare -a matArr # Holds the elements of the matrix
+	idx=0
+	rows=0
+
+	while read myLine
+	do
+        	rows=`expr $rows + 1` # To get the number of rows in the matrix
+
+        	for i in $myLine
+        	do
+                	matArr[idx]="${i}" # Adds the current element to the array
+                	((++idx))
+        	done
+	done < $1
+
+	cols=$((idx / rows)) # To get the number of columns in the matrix
+
+	# Outputs a rows, where a is equal to the number of columns
+	for ((a=0; a<$cols; a++))
+	do
+        	line="" # Holds the contents of a row
+
+        	i=$a # The index to get the appropriate element from the array
+
+		# Outputs b columns, where b is equal to the number of rows
+        	for ((b=0; b<$rows; b++))
+        	do
+                	n=${matArr[i]} 
+
+                	line="$line$n\t" # Concatenates the element to the line
+
+                	i=`expr $i + $cols` # Gets the index of the next element
+        	done
+
+        	echo -e "${line%??}" # Removes the trailing tab and prints the row
+	done
+}
+
+# Function to get the mean of each column
+mean() {
+	declare -a matArr # Holds the elements of the matrix
+	idx=0
+	rows=0
+	line=""
+
+	# Loops through for each row of the matrix
+	while read myLine
+	do
+        	rows=`expr $rows + 1` # To determine the number of rows
+
+        	for i in $myLine
+        	do
+                	matArr[idx]="${i}" # Adds the current element to the array
+                	((++idx))
+        	done
+	done < $1
+
+	cols=$((idx / rows)) # To determine the number of columns
+
+	# Loop to get the mean of each column
+	for ((a=0; a<$cols; a++))
+	do
+        	mean=0
+        	i=$a # Determines the index
+
+		# Loop to add the elements of each column together
+        	for ((b=0; b<$rows; b++))
+        	do
+                	mean=`expr $mean + ${matArr[i]}` # Adds the current element to the total
+
+                	i=`expr $i + $cols` # Gets the index of the next element
+        	done
+
+        	mean=$(((mean + ($rows/2)*( (mean>0)*2-1 )) / $rows)) # Calculates the mean of the column
+        	line="$line$mean\t" # Concatenates the mean to the line for outpput
+	done
+
+	echo -e "${line%??}" # Removes the trailing tab and prints the means of each column
+}
+
+# Adds two matrices together
+add() {
+	rows1=0
+	cols1=0
+	rows2=0
+	cols2=0
+	idx1=0
+	idx2=0
+
+	declare -a arr1 # Holds the elements of the first matrix
+	declare -a arr2 # Holds the elements of the second matrix
+
+	while read myLine
+	do
+        	rows1=`expr $rows1 + 1` # The number of rows in the first matrix
+
+        	for i in $myLine
+        	do
+                	arr1[idx1]="${i}" # Adds the element to the array
+                	((++idx1))
+
+                	if [ "$rows1" -eq 1 ]
+                	then
+                        	cols1=`expr $cols1 + 1` # The number of columns in the first matrix
+                	fi
+        	done
+	done < $1
+
+	while read myLine
+	do
+        	rows2=`expr $rows2 + 1` # The number of rows in the second matrix
+
+        	for i in $myLine
+        	do
+                	arr2[idx2]="${i}" # Adds the element to the array
+                	((++idx2))
+
+                	if [ "$rows2" -eq 1 ]
+                	then
+                        	cols2=`expr $cols2 + 1` # The number of columns in the second matrix
+                	fi
+        	done
+	done < $2
+
+	# Determines if the dimensions of the matrices are compatible
+	if [ "$rows1" -ne "$rows2" ] || [ "$cols1" -ne "$cols2" ]
+	then
+        	echo "Matrix sizes are incompatible" >&2 # Outputs error message and exits if they are not compatible
+		exit 1
+	else
+        	line="" # The line for output
+
+        	for ((a=0; a<$idx1; a++))
+        	do
+                	if [ $a -gt 0 ] && [ $((a % $cols1)) -eq 0 ] # Prints a line when appropriate
+                	then
+                        	echo -e "${line%??}"
+                        	line="" # Resets the line after printing
+                	fi
+
+                	num=${arr1[a]} # Gets the element from the first array
+                	num=`expr $num + ${arr2[a]}` # Adds it to the corresponding element of the second array
+
+                	line="$line$num\t" # Concatenates that number to the output line
+        	done
+
+        	echo -e "${line%??}" # Prints the final line
+	fi
+}
+
+# Function to multiply two matrices
+multiply() {
+	rows1=0
+	cols1=0
+	rows2=0
+	cols2=0
+	idx1=0
+	idx2=0
+
+	declare -a arr1 # Holds the elements of the first matrix
+	declare -a arr2 # Holds the elements of the second matrix
+
+	while read myLine
+	do
+        	rows1=`expr $rows1 + 1` # The number of rows in the first matrix
+
+        	for i in $myLine
+        	do
+                	arr1[idx1]="${i}" # Adds the element to the array
+                	((++idx1))
+
+                	if [ "$rows1" -eq 1 ]
+                	then
+                        	cols1=`expr $cols1 + 1` # The number of columns in the first matrix
+                	fi
+        	done
+	done < $1
+
+	while read myLine
+	do
+        	rows2=`expr $rows2 + 1` # The number of rows in the second matrix
+
+        	for i in $myLine
+        	do
+                	arr2[idx2]="${i}" # Adds the element to the array
+                	((++idx2))
+
+                	if [ "$rows2" -eq 1 ]
+                	then
+                        	cols2=`expr $cols2 + 1` # The number of columns in the second matrix
+                	fi
+        	done
+	done < $2
+
+	# Checks that the sizes of the matrices are compatible
+	if [ $cols1 -ne $rows2 ]
+	then
+        	echo "Matrix sizes are incompatible" >&2 #Prints error message and exits if they are not
+		exit 1
+	else
+		# Prints a rows, where a is equal to the number of rows in the first matrix
+        	for ((a=0; a<$rows1; a++))
+        	do
+                	line="" # Holds the output line
+
+			# Loops for the number of columns in the second array
+                	for ((b=0; b<$cols2; b++))
+                	do
+                        	idx=$b # The index of the next element to retrieve from the second array
+                        	sum=0
+                        	min=`expr $a '*' $cols1`
+                        	max=`expr $a + 1`
+                        	max=`expr $max '*' $cols1`
+
+				# Loops for the number of columns in the first matrix, which is equal to the number of rows in the second matrix
+                        	for ((c=$min; c<$max; c++))
+                        	do
+                                	res=`expr ${arr1[$c]} '*' ${arr2[$idx]}` # Multiplies the elements together
+                                	sum=`expr $sum + $res` # Adds the result to the sum
+                                	idx=`expr $idx + $cols2` # Determines the next index for the second array
+                        	done
+                        	line="$line$sum\t" # Concatenates the sum to the output line
+                	done
+                	echo -e "${line%??}" # Removes the trailing tab and prints the line
+        	done
+	fi
+}
+
+# Function to check that the matrix is valid
+checkMatrix() {
+	rows=0
+	cols=0
+	currentCols=0
+	trailingTab=0
+
+	while read myLine
+	do
+		currentCols=0 
+
+		rows=`expr $rows + 1`
+
+		# Checks if there is a trailing tab on the current line
+		# Prints error message and exits if so
+		trailingTab=$(grep -c $'\t$' $1)
+		if [ $trailingTab -gt 0 ]
+		then
+			echo "Trailing tab" >&2
+			exit 1
+		fi
+
+		# Checks if the line is blank
+		# Prints error message and exits if so
+		if [ -z "$myLine" ]
+		then
+			echo "Line is empty" >&2
+			exit 1
+		fi
+
+		for i in $myLine
+		do
+			if [ $rows -eq 1 ]
+			then
+				cols=`expr $cols + 1` # Gets the number of columns in the first row
+			fi
+
+			currentCols=`expr $currentCols + 1` # Gets the number of columns for the current row
+
+			# Checks that the element is an integer
+			# Prints error message and exits if not
+			if [ $i -ne $i ] 2>/dev/null
+			then
+				echo "Element is not an integer" >&2
+				exit 1
+			fi
+		done
+
+		# Checks that the number of columns in the current row is equal to the number of columns in the first row
+		# Prints error message and exits if not
+		if [ $cols -ne $currentCols ]
+		then
+			echo "Blank element" >&2
+			exit 1
+		fi
+	done < $1
+}
+
+validCmnd=1 # Determines if the command was invalid
+tempF=1 # Determines if a temporary file was created
+fName="" # Holds the name of a file
+
+#  Function to remove any temporary files
+cleanup() {
+	if [ $tempF -eq 0 ]
+	then
+		rm -f "$fName"
+	fi
+}
+
+# To call the cleanup() function on exit
+trap cleanup EXIT
+
+# For the commands that can read from a file or from stdin
+if [ $1 = "dims" ] || [ $1 = "transpose" ] || [ $1 = "mean" ]
+then
+	validCmnd=0 # Sets the validCmnd variable to 0
+
+	# If reading from stdin
+	if [ "$#" -eq 1 ]
+	then
+		fName=tempFile # Creates a temporary file
+		tempF=0 # Sets the tempF variable to 0
+		cat > $fName
+	# If reading from a file
+	else
+		# Checks that the number of arguments is valid
+		if [ "$#" -ne 2 ]
+		then
+			echo "Invalid number of arguments" >&2
+			exit 1
+		else
+			# Checks that the file can be accessed
+			if [ ! -f $2 ] || [ ! -r $2 ]
+			then
+				echo "Cannot access file" >&2
+				exit 1
+			fi
+
+			fName=$2 # Sets the fName variable to the name of the file
+		fi
+	fi
+
+	# Checks that the matrix is not empty
+	if [ ! -s $fName ]
+	then
+		echo "Empty matrix" >&2
+		exit 1
+	fi
+
+	checkMatrix $fName # Calls the checkMatrix() function to determine if the matrix is valid
+
+	$1 $fName # Calls the appropriate function
+fi
+
+# For the functions that only read from files
+if [ $1 = "add" ] || [ $1 = "multiply" ]
+then
+	validCmnd=0 # Sets the validCmnd variable to 0
+
+	# Checks that the number of arguments is valid
+	if [ "$#" -ne 3 ]
+	then
+		echo "Invalid number of arguments" >&2
+		exit 1
+	fi
+
+	# Checks that both files can be accessed
+	if [ ! -f $2 ] || [ ! -r $2 ] || [ ! -f $3 ] || [ ! -r $3 ]
+	then
+		echo "Cannot access file" >&2
+		exit 1
+	fi
+
+	# Checks that neither matrix is empty
+	if [ ! -s $2 ] || [ ! -r $3 ]
+	then
+		echo "Empty matrix" >&2
+		exit 1
+	fi
+
+	# Calls the checkMatrix() function for both matrices
+	checkMatrix $2
+	checkMatrix $3
+
+	$1 "${@:2}" # Calls the appropriate function
+fi
+
+# For if an invalid command was entered
+if [ $validCmnd -eq 1 ]
+then
+	echo "Invalid command" >&2
+	exit 1
+fi
